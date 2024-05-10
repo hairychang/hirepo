@@ -1,0 +1,69 @@
+https://www.youtube.com/watch?v=k2CK81Hx1hw
+
+
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+
+
+namespace WebApplication1.Models
+{
+    public class Converter
+    {
+        public DataTable GetEntityToDataTableSchema(Type entityType)
+        {
+            var result = new DataTable();
+
+            var properties = entityType.GetProperties();
+
+            foreach (var property in properties)
+            {
+                var columnType = property.PropertyType;
+
+                if (property.PropertyType.IsGenericType && property.PropertyType.GetGenericTypeDefinition() == typeof(Nullable<>))
+                {
+                    //兩種寫法都可以，透過Nullable.GetUnderlyingType()比較簡潔。
+
+                    //columnType = property.PropertyType.GetGenericArguments()[0];
+                    columnType = Nullable.GetUnderlyingType(property.PropertyType);
+                }
+
+                var column = new DataColumn(property.Name, columnType);
+                result.Columns.Add(column);
+            }
+
+            return result;
+        }
+
+        public DataTable EntityToDataTable<T>(IEnumerable<T> entities)
+        {
+            var result = GetEntityToDataTableSchema(typeof(T));
+            if (entities.Count() == 0)
+            {
+                return result;
+            }
+
+            var properties = typeof(T).GetProperties();
+
+            foreach (var entity in entities)
+            {
+                var dr = result.NewRow();
+
+                foreach (var property in properties)
+                {
+                    dr[property.Name] = property.GetValue(entity, null) ?? DBNull.Value;
+                }
+
+                result.Rows.Add(dr);
+            }
+
+            return result;
+        }
+
+        
+
+    }
+}
